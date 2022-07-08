@@ -1,3 +1,25 @@
+/*
+trie를 이용한 자동 완성 추천 기능 구현
+root->search(문자열, priority_queue)를 통해 검색 횟수 기준 내림 차순 자동 추천 작동 확인 완료
+
+root->search("poh", pq);
+for(int i=0; i<10; i++){
+    if(pq.empty()) break;
+    printf( "%s\n", pq.top().word);
+    pq.pop();
+}
+
+아래와 같은 실시간 입력 및 출력을 시도 했으나 잘 되지 않는 상태 -> 다시 시도 해보기
+Search work : "타이핑 공간"
+------------------------
+단어 1
+단어 2
+단어 3
+.
+.
+.
+*/
+
 #include <iostream>
 #include <cstdio>
 #include <cctype>
