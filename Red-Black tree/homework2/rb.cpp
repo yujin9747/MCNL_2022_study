@@ -13,7 +13,7 @@ class my_map{
         my_map* left;
         my_map* right;
         my_map* prev;
-        std::string color; // root/red/black
+        string color; // root/red/black
         bool root;
     public :
         my_map() : root(false), color("black"){}
@@ -33,15 +33,15 @@ class my_map{
             if(this->first.compare(key) == 0) return iterator(this);
             else{
                 if(this->left != NULL)  // 왼쪽 자식 먼저 찾기
-                    return this->left.find(key);               
+                    return this->left->find(key);               
                 if(this->right != NULL)  // 왼쪽에서 못 찾은 경우 오른쪽 찾기
-                    return this->right.find(key); 
+                    return this->right->find(key); 
                 return this->end(); // 왼, 오 모두에서 못 찾은 경우
             }
         }
         iterator begin(){
             if(this->left == NULL) return iterator(this);
-            else return this->left.begin();
+            else return this->left->begin();
         }
         iterator end(){
             return iterator(nullptr);
@@ -53,11 +53,25 @@ class MapIterator{
     private:
         my_map<T1, T2>* curr;
     public:
-        MapIterator<T1, T2>(my_map<T1, T2>* p = NULL) :curr(p){};
-        MapIterator<T1, T2>& operator++();
-        bool operator==(const my_map<T1, T2> &ref);
-        bool operator!=(const my_map<T1, T2> &ref);
-        my_map<T1, T2>& operator->();
+        MapIterator(my_map<T1, T2>* p = nullptr) :curr(p){};
+        MapIterator& operator++(){
+            if(curr->right == nullptr) {
+                if(curr->prev->right == this) curr = curr->prev->prev; // prev 기준 오른쪽 자식 방문 후, 자기 위로 바로 이동
+                else(curr->prev->left == this) curr = curr->prev; // prev 기준 왼쪽 자식 방문 후, 자기 자신 방문
+                return *this;
+            }
+            else { // 오른쪽 자식 존재하는 경우, 오른쪽 자식 중 가장 작은 것 방문
+                curr = this->begin();
+                return *this;
+            }
+        }
+        bool operator==(const MapIterator &ref){
+            return curr == ref.curr;
+        }
+        bool operator!=(const MapIterator &ref){
+            return curr != ref.curr;
+        }
+        //my_map<T1, T2>& operator->();
 };
 
 template <typename T1, typename T2>
@@ -108,35 +122,6 @@ int main(){
     }
 
     return 0;
-}
-
-/* MapIterator functions */
-template<typename T1, typename T2>
-MapIterator<T1, T2>& MapIterator<T1, T2>::operator++(){
-    if(curr->right == nullptr) {
-        if(curr->prev->right == this) curr = curr->prev->prev; // prev 기준 오른쪽 자식 방문 후, 자기 위로 바로 이동
-        else(curr->prev->left == this) curr = curr->prev; // prev 기준 왼쪽 자식 방문 후, 자기 자신 방문
-        return *this;
-    }
-    else { // 오른쪽 자식 존재하는 경우, 오른쪽 자식 중 가장 작은 것 방문
-        curr = this->begin();
-        return *this;
-    }
-}
-
-template<typename T1, typename T2>
-bool MapIterator<T1, T2>::operator==(const my_map<T1, T2> &ref){
-    return curr == ref.curr;
-}
-
-template<typename T1, typename T2>
-bool MapIterator<T1, T2>::operator!=(const my_map<T1, T2> &ref){
-    return curr != ref.curr;
-}
-
-template<typename T1, typename T2>
-my_map<T1, T2>& operator->(){
-    return curr;
 }
 
 /* my_map functions */
