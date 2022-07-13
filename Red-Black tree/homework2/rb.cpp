@@ -46,14 +46,25 @@ class MapIterator{
                 else if(curr->prev->prev == curr->prev && curr->prev->right == curr) curr = nullptr; // root의 직계자식인데 root의 오른쪽 자식일 경우
                 else if(curr->prev->prev == curr->prev && curr->prev->left == curr) curr = curr->prev; // root의 직계자식인데 root의 왼쪽 자식인 경우
                 else{
-                    while(curr->prev != curr->prev->prev->left) {// 자신의 부모가 조상의 왼쪽에 연결 되어 있을 때, 그 조상까지 이동 해야 함.
-                        curr = curr->prev;
-                        if(curr->prev == curr->prev->prev) { // 옮긴 후 조상이 head인 경우 -> 더이상 올라갈 곳 없으므로 nullptr 반환
-                            curr = nullptr;
-                            return *this;
+                    if(curr->prev->left == curr){
+                        while(curr->prev != curr->prev->prev->right) {// 자신의 부모가 조상의 왼쪽에 연결 되어 있을 때, 그 조상까지 이동 해야 함.
+                            curr = curr->prev;
+                            if(curr->prev == curr->prev->prev) { // 옮긴 후 조상이 head인 경우
+                                return *this;
+                            }
                         }
+                        curr = curr->prev;
                     }
-                    curr = curr->prev->prev; // 꺾인 조상 위치로 이동 (조상 기준 왼쪽 자손으로부터 올라온 것)
+                    else if(curr->prev->right == curr){
+                        while(curr->prev != curr->prev->prev->left){
+                            curr = curr->prev;
+                            if(curr->prev == curr->prev->prev){
+                                curr = nullptr;
+                                return *this;
+                            }
+                        }
+                        curr = curr->prev->prev;
+                    }
                 }
             }
             else { // 오른쪽 자식 존재하는 경우, 오른쪽 자식 중 가장 작은 것 방문
@@ -84,8 +95,8 @@ class my_map{
                 head = new node<T1, T2>(p);
                 head->color = "black";
                 head->prev = head;
-                cout << "< root >\n";
-                head->show();
+                // cout << "< root >\n";
+                // head->show();
             }
             else {
                 node<T1, T2>* newNode = new node<T1, T2>(p);
@@ -250,8 +261,8 @@ node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){
                 newNode->color = "red";
                 newNode->prev = this;
                 right = newNode;
-                cout << "< right >\n";
-                this->right->show();
+                // cout << "< right >\n";
+                // this->right->show();
                 if(this->prev == this) return head; // root 인 경우
                 if(this->prev->right != this){ // 꺾인 경우
                     if(this->prev->right == nullptr){ // 삼촌이 없는 경우
@@ -329,8 +340,8 @@ node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){
                 newNode->color = "red";
                 newNode->prev = this;
                 left = newNode;
-                cout << "< left >\n";
-                this->left->show();
+                // cout << "< left >\n";
+                // this->left->show();
 
                 if(this->prev == this) return head; // root 인 경우
                 if(this->prev->left != this){ // 꺾인 경우
@@ -424,16 +435,13 @@ node<T1, T2>* node<T1, T2>::find(T1 key){
 // https://gwpaeng.tistory.com/309 : 참고 사이트 보고 다시 구현 해보기
 template<typename T1, typename T2>
 void my_map<T1, T2>::erase(T1 key){
-
     node<T1, T2>* found = (*this).find(key);
     if(found == nullptr) return; // 삭제할 노드를 찾지 못 한 경우
-
     node<T1, T2>* smallestR = found->right->begin(); // 오른쪽 서브 트리에서 가장 작은 값으로 자리 대체
     if(smallestR->prev->left == smallestR) smallestR->prev->left = nullptr;
     else if(smallestR->prev->right == smallestR) smallestR->prev->right = nullptr;
     found->first = smallestR->first;
     found->second = smallestR->second;
-
     if(found->color.compare("black") == 0){ // 삭제되는 노드의 색상이 black인 경우
         // 이중 흑색 노드인지 검사
         if(smallestR->color.compare("black") == 0) { // 이중 흑색 노드인 경우 : 4가지 cases 존재
@@ -503,7 +511,6 @@ void my_map<T1, T2>::erase(T1 key){
                         rotationL(found->prev, found->prev->left);
                     } 
                 }
-
             }
             // 4. found의 형제가 black, found의 형제의 오른쪽 자식이 red
         }
@@ -521,8 +528,14 @@ void node<T1, T2>::erase(T1 key){
     int strcompare = strcmp(key.c_str(), this->first.c_str());
     if(strcompare == 0){ // found!
         node<T1, T2>* smallestR = this->right->begin(); // 오른쪽 서브 트리에서 가장 작은 값으로 자리 대체
-        if(smallestR->prev->left == smallestR) smallestR->prev->left = nullptr;
-        else if(smallestR->prev->right == smallestR) smallestR->prev->right = nullptr;
+        if(smallestR->prev->left == smallestR) {
+            smallestR->prev->left = smallestR->right;
+            smallestR->right->prev = smallestR->prev;
+        }
+        else if(smallestR->prev->right == smallestR) {
+            smallestR->prev->right = smallestR->right;
+            smallestR->right->prev = smallestR->prev;
+        }
         this->first = smallestR->first;
         this->second = smallestR->second; 
         delete smallestR;
@@ -543,5 +556,3 @@ void node<T1, T2>::erase(T1 key){
         }
     }
 }
-
-
