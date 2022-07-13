@@ -5,6 +5,7 @@
 // delete 할 때 rb 트리 유지하는지 다시 확인하기
 using namespace std;
 
+/* node class : tree를 구성하는 기본 노드 */
 template <typename T1, typename T2> 
 class node{
     public :
@@ -13,12 +14,12 @@ class node{
         node* left;
         node* right;
         node* prev;
-        string color; // root/red/black
+        string color; // red/black
     public :
         node(): first(""), second(0), color("red"), prev(this), left(nullptr), right(nullptr){}
         node(pair<T1, T2> p) : first(p.first), second(p.second), color("black"), prev(nullptr), left(nullptr), right(nullptr){} // head node 생성
         ~node(){}
-        void show() const{ cout << "key : " << first <<  "\nvalue : " << second << "\n\n";}
+        void show() const{ cout << "key : " << first <<  "\nvalue : " << second << "\n\n";} // DEBUG PRINT
         node* insert(node* newNode, node* head);
         void rotationR(node* toRight, node* newParent);
         void rotationL(node* toLeft, node* newParent);
@@ -31,54 +32,61 @@ class node{
             return curr;
         }
         T2& operator[](T1 key); 
-        bool black();
         void erase(T1 key);
 };
 
+/* MapIterator 클래스 : node 포인터를 가지고 있으며, operator overloading을 통해 curr의 위치를 이동해 반환한다 */
 template <typename T1, typename T2>
 class MapIterator{
     public:
         node<T1, T2>* curr;
     public:
         MapIterator(node<T1, T2>* p = nullptr) :curr(p){};
+
+        /* 오름차순으로 TRee 순회하도록 위치 이동 */
         MapIterator& operator++(){
-            if(curr->right == nullptr) { // 위로 올라 가야 하는 상황
-                if(curr->prev == curr) curr = nullptr; // root인데 오른쪽 자식이 없는 경우
-                else if(curr->prev->prev == curr->prev && curr->prev->right == curr) curr = nullptr; // root의 직계자식인데 root의 오른쪽 자식일 경우
-                else if(curr->prev->prev == curr->prev && curr->prev->left == curr) curr = curr->prev; // root의 직계자식인데 root의 왼쪽 자식인 경우
+            if(curr->right == nullptr) {                                                    // 1. 위로 이동
+                if(curr->prev == curr) curr = nullptr;                                      // - root인 경우 -> 순회 끝
+                else if(curr->prev->prev == curr->prev && curr->prev->right == curr) curr = nullptr;    // - root의 직계자식인데 root의 오른쪽 자식일 경우 -> 순회 끝
+                else if(curr->prev->prev == curr->prev && curr->prev->left == curr) curr = curr->prev;  // - root의 직계자식인데 root의 왼쪽 자식인 경우 -> 하나 위로 이동
                 else{
-                    if(curr->prev->left == curr){
-                        while(curr->prev != curr->prev->prev->right) {// 자신의 부모가 조상의 왼쪽에 연결 되어 있을 때, 그 조상까지 이동 해야 함.
+                    if(curr->prev->left == curr){                                           // - 부모의 왼쪽에 위치한 경우 : 조상(오:부모), 부모(왼:CUrr) 모양으로 꺾인 위치까지 이동
+                        while(curr->prev != curr->prev->prev->right) {                      
                             curr = curr->prev;
-                            if(curr->prev == curr->prev->prev) { // 옮긴 후 조상이 head인 경우
+                            if(curr->prev == curr->prev->prev) {                            // 옮긴 후 조상이 head인 경우 : head 순회
                                 return *this;
                             }
                         }
-                        curr = curr->prev;
+                        curr = curr->prev;                                                  // 꺾인 기준점인 부모 순회
                     }
-                    else if(curr->prev->right == curr){
+                    else if(curr->prev->right == curr){                                     // - 부모의 오른쪽에 위치한 경우 : 조상(왼:부모), 부모(오:curr) 모양으로 꺾인 위치까지 이동
                         while(curr->prev != curr->prev->prev->left){
                             curr = curr->prev;
-                            if(curr->prev == curr->prev->prev){
+                            if(curr->prev == curr->prev->prev){                             // 옮긴 후 조상이 head인 경우 : 순회 끝
                                 curr = nullptr;
                                 return *this;
                             }
                         }
-                        curr = curr->prev->prev;
+                        curr = curr->prev->prev;                                            // 조상으로 이동 -> 조상 기준 왼쪽을 모두 방문 후, 자기 자신 방문
                     }
                 }
             }
-            else { // 오른쪽 자식 존재하는 경우, 오른쪽 자식 중 가장 작은 것 방문
+            else {                                                                         // 2. 오른쪽 subtree 중 가장 작은 것 부터 방문
                 curr = curr->right->begin();
             }
-            return *this;
+            return *this;                                                                   // 최종 return : 위치 이동한 curr 반환
         }
+
+        /* curr와 비교하려는 Iterator가 가리키는 노드가 동일한지 반환 */
         bool operator==(const MapIterator &ref){
             return curr == ref.curr;
         }
+        /* curr와 비교하려는 Iterator가 가리키는 노드가 동일하지 않은지 반환 */
         bool operator!=(const MapIterator &ref){
             return curr != ref.curr;
         }
+
+        /* curr의 값에 접근하기 위한 Operator로, curr 반환 */
         node<T1, T2>* operator->()
         {
             return curr;
@@ -136,19 +144,21 @@ class my_map{
 
         /* key값을 가진 노드 찾아 iterator 반환 */
         iterator find(T1 key){ 
-            if(head == nullptr) return iterator(nullptr);           // 1.
+            if(head == nullptr) return iterator(nullptr);           // 1. tree가 비어 있는 경우
             else { 
                 node<T1, T2>* found = head->find(key);
-                if(found == nullptr) return iterator(nullptr);
-                else return iterator(found);
+                if(found == nullptr) return iterator(nullptr);      // 2. find 하지 못한 경우
+                else return iterator(found);                        // 3. find 한 경우
             }
         }
+
+        /* 현재 노드 기준 가장 작은 노드의 iterator 반환 */
         iterator begin(){
             node<T1, T2>* curr = head;
             while(curr->left != nullptr){
                 curr = curr->left;
             }
-            return iterator(curr);
+            return iterator(curr);                                  // left 가 nullptr인 노드 반환
         }
 
         iterator end(){
@@ -184,16 +194,19 @@ int main(){
     m.insert(make_pair("CSEE", 20));
     m.insert(make_pair("MCNL", 15));
     print_map(m);
+    // CSEE -> Global -> Handong -> MCNL 순 출력
 
     cout << "\n** Second Step **\n";
     m["Pohang"] = 50;
     m["Korea"] = 60;
     print_map(m);
+    // CSEE - Global -> Handong -> Korea -> MCNL -> Pohang 순 출력
 
     cout << "\n** Third Step **\n";
     m["CSEE"] = 100;
     m.erase("Global"); 
     print_map(m);
+    // CSEE(값 100으로 변경) - Handong -> Korea -> MCNL -> Pohang 순 출력
 
     cout << "\n** Fourth Step **\n";
     string key = "MCNL";
@@ -203,6 +216,7 @@ int main(){
     else {
         cout << key << " does not exists!\n";
     }
+    // MCNL Exists! 출력
 
     return 0;
 }
