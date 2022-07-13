@@ -259,7 +259,7 @@ node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){ // insert
     int strcompare = strcmp(this->first.c_str(), newNode->first.c_str());
     if(strcompare == 0){                                        // first == key : 중복 -> 삽입하지 않는다
         cout << "same!\n";
-        else return head;                                       // 변경사항 없이 그대로 반환
+        return head;                                       // 변경사항 없이 그대로 반환
     }
     else{ // 중복이 아닌 경우
         if(strcompare < 0){                                     // this node 기준 오른쪽 자식이 들어온 경우
@@ -318,8 +318,8 @@ node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){ // insert
                     if(this->prev->left == nullptr){            // 삼촌이 없는 경우
                         if(this->color.compare("red") == 0) this->color = "black";
                         rotationL(this->prev, this); 
-                        // if(this->prev->right == this->left) this->prev->right = this;
-                        // else if(this->prev->left == this->left) this->prev->left = this;
+                        if(this->prev->right == this->left) this->prev->right = this;
+                        else if(this->prev->left == this->left) this->prev->left = this;
                         return head;
                     }
                     else{                                       // 삼촌이 있는 경우
@@ -396,8 +396,8 @@ node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){ // insert
                     if(this->prev->right == nullptr){ 
                         if(this->color.compare("red") == 0) this->color = "black";
                         rotationR(this->prev, this);
-                        // if(this->prev->right == this->right) this->prev->right = this; 
-                        // else if(this->prev->left == this->right) this->prev->left = this;
+                        if(this->prev->right == this->right) this->prev->right = this; 
+                        else if(this->prev->left == this->right) this->prev->left = this;
                         return head;
                     }
                     else{ 
@@ -418,7 +418,7 @@ node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){ // insert
             }
         }
     }
-    //return head;
+    return head;
 }
 
 /* find function : key값을 가진 노드를 찾아 반환한다 */
