@@ -1,7 +1,8 @@
 #include <iostream>
 #include <cstring>
 #include <string>
-
+// 정상 출력되는 상황
+// delete 할 때 rb 트리 유지하는지 다시 확인하기
 using namespace std;
 
 template <typename T1, typename T2> 
