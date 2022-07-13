@@ -16,7 +16,6 @@ class node{
     public :
         node(): first(""), second(0), color("red"), prev(this), left(nullptr), right(nullptr){}
         node(pair<T1, T2> p) : first(p.first), second(p.second), color("black"), prev(nullptr), left(nullptr), right(nullptr){} // head node 생성
-        //node(pair<T1, T2> p, node* head): first(p.first), second(p.second), color("red"), left(nullptr), right(nullptr){}
         ~node(){}
         void show() const{ cout << "key : " << first <<  "\nvalue : " << second << "\n\n";}
         node* insert(node* newNode, node* head);
@@ -132,13 +131,7 @@ class my_map{
             }
             return iterator(curr);
         }
-        // node<T1, T2>* begin(){
-        //     node<T1, T2>* curr = head;
-        //     while(curr->left != nullptr){
-        //         curr = curr->left;
-        //     }
-        //     return curr;
-        // }
+
         iterator end(){
             return iterator(nullptr);
         }
@@ -154,12 +147,12 @@ void print_map(my_map<T1, T2> m){
 }
 
 int main(){
-    // 다음에 할 일 : erase 구현
+    // 다음에 할 일 : erase 할 때 rb tree로서의 균형 맞도록 수정하기
     /*
     구현할 목록
     1. insert에 make_pair로 인수 받아서 처리 하도록 수정 (o)
     2. insert하거나 edit할 때 [] 안에 있는 값을 통해서 하기 (o)
-    3. erase 함수를 통해 지우기
+    3. erase 함수를 통해 지우기 (세모 -> 이진탐색트리 방식으로 삭제 완료)
     4. find를 통해 해당 키값을 가지는 노드 반환 (o)
     4. end를 통해 마지막 값 다음을 가리키는 것 반환 (o)
     5. begin을 통해 처음 값을 가리키는 것 반환 (o)
