@@ -1,8 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <string>
-// 문제점 : rotate 하고 돌아갈 때, toLeft 혹은 toRight 한 것 밑에 연결됨. 새로운 this 로 바뀌는 것이 아니라..
-// prev 기준 rotate 할 때 prev의 prev 까지 신경써서 돌려야 하나,,?
+
 using namespace std;
 
 template <typename T1, typename T2> 
