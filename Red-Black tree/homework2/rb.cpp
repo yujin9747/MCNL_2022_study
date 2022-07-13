@@ -85,34 +85,39 @@ class MapIterator{
         }
 };
 
+/* node로 이루어진 rb tree의 head를 담고 있으며, MapIterator 클래스가 타입으로 지정되어 있다 */
 template <typename T1, typename T2>
 class my_map{
     public:
         node<T1, T2>* head;
     public:
         my_map():head(nullptr){}
+
+        /* insert : 노드를 삽입 후, head를 update 한다 */
         void insert(pair<T1, T2> p){
-            if(head == nullptr) {
+            if(head == nullptr) {                           // 1. 첫 노드가 insert되는 경우 -> head에 바로 연결(색:black)
                 head = new node<T1, T2>(p);
                 head->color = "black";
                 head->prev = head;
                 // cout << "< root >\n";
                 // head->show();
             }
-            else {
+            else {                                          // 2. 첫 노드가 아닌 경우 -> 새로운 노드 생성해 node 클래스 내 insert 함수 call
                 node<T1, T2>* newNode = new node<T1, T2>(p);
                 head = head->insert(newNode, head);
             }
         }
+
+        /* 노드 삽입 / 찾기 후, 해당 노드의 second의 주소를 반환한다 */
         T2& operator[](T1 key){
-            if(head == nullptr) { // key값으로 새로운 노드 만들어서 second만 값은 임의로 채워두고 second 주소 반환하기
+            if(head == nullptr) {                                   // 1. tree가 비어있는 경우 -> 새 노드 생성, update head, second 주소 반환
                 node<T1, T2>* newNode = new node<T1, T2>();
                 newNode->first = key;
+                head = newNode;
                 return newNode->second;
             }
-            // 해당 값이 존재하는 위치 찾아서 second 주소 반환하기
-            iterator found = find(key);
-            if(found == iterator(nullptr)) { // insert 후, 다시 find 해서 second 주소 반환
+            iterator found = find(key);                             // key값을 가진 노드 찾기
+            if(found == iterator(nullptr)) {                        // 2. 존재하지 않는 경우 -> insert 후, second 주소 반환
                 node<T1, T2>* newNode = new node<T1, T2>();
                 newNode->first = key;
                 newNode->prev = nullptr;
@@ -120,16 +125,18 @@ class my_map{
                 head = head->insert(newNode, head);
                 return newNode->second;
             }
-            return found->second;
+            return found->second;                                   // 3. 존재하는 경우 -> 바로 second 주소 반환
         }
+        /* erase : node 클래스 내, erase 함수 호출 */
         void erase(T1 key){
             return head->erase(key);
         }
 
-        typedef MapIterator<T1, T2> iterator;
+        typedef MapIterator<T1, T2> iterator;                       // MapIterator 클래스 타입 지정자인 iterator 선언
 
-        iterator find(T1 key){ // to be fixed
-            if(head == nullptr) return iterator(nullptr);
+        /* key값을 가진 노드 찾아 iterator 반환 */
+        iterator find(T1 key){ 
+            if(head == nullptr) return iterator(nullptr);           // 1.
             else { 
                 node<T1, T2>* found = head->find(key);
                 if(found == nullptr) return iterator(nullptr);
@@ -149,6 +156,7 @@ class my_map{
         }
 };
 
+/* MapIterator를 사용해 오름차순으로 key를 출력한다 */
 template <typename T1, typename T2>
 void print_map(my_map<T1, T2> m){
     my_map<string, int>::iterator iter;
@@ -159,17 +167,15 @@ void print_map(my_map<T1, T2> m){
 }
 
 int main(){
-    // 다음에 할 일 : erase 할 때 rb tree로서의 균형 맞도록 수정하기
     /*
-    구현할 목록
+    구현 목록
     1. insert에 make_pair로 인수 받아서 처리 하도록 수정 (o)
     2. insert하거나 edit할 때 [] 안에 있는 값을 통해서 하기 (o)
-    3. erase 함수를 통해 지우기 (세모 -> 이진탐색트리 방식으로 삭제 완료)
+    3. erase 함수를 통해 지우기 (세모 -> rb tree 유지하는지 확인 필요)
     4. find를 통해 해당 키값을 가지는 노드 반환 (o)
     4. end를 통해 마지막 값 다음을 가리키는 것 반환 (o)
     5. begin을 통해 처음 값을 가리키는 것 반환 (o)
     */
-   // insert 코드 리뷰 하며 발생할 수 있는 버그 잡기 -> 현재 아래의 테스트로는 잘 돌아가는 상황
     my_map<string, int> m;
 
     cout << "** First Step **\n";
@@ -201,54 +207,57 @@ int main(){
     return 0;
 }
 
-/* my_map functions */
+/* rotation functions */
 template<typename T1, typename T2>
 void node<T1, T2>::rotationL(node* toLeft, node* newParent){
-    node* temp = newParent->left; // 위로 올라 갈 새로운 부모
-    newParent->left = toLeft; // toLeft = newParent의 부모였지만 왼쪽 아래로 내려가는 노드
-    toLeft->right = temp; // 기존에 newParent가 연결되어 있던 곳에 newParent의 기존 left 연결
+    /* newParent를 toLeft의 부모로 위치 변경*/
+    
+    // stage 1. 자식을 가리키는 left/right 포인터 값 변경
+    node* temp = newParent->left; 
+    newParent->left = toLeft; 
+    toLeft->right = temp;
+
+    // stage 2. 부모를 가리키는 prev 포인터 값 변경
     temp = toLeft->prev;
     toLeft->prev = newParent;
     newParent->prev = temp;
 }
 template<typename T1, typename T2>
 void node<T1, T2>::rotationR(node* toRight, node* newParent){
+     /* newParent를 toRight의 부모로 위치 변경*/
+    
+    // stage 1. 자식을 가리키는 left/right 포인터 값 변경
     node* temp = newParent->right;
     newParent->right = toRight;
     toRight->left = temp; 
+
+    // stage 2. 부모를 가리키는 prev 포인터 값 변경
     temp = toRight->prev;
     toRight->prev = newParent;
     newParent->prev = temp;
 }
+
+/*  insert function : 트리 내 적절한 위치 찾아 삽입 및 Rb tree 조건 충족 
+    my_map 클래스 내 insert 함수의 helper function
+*/
 template<typename T1, typename T2>
-node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){
+node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){ // insert된 head값 update 후 반환 
     int strcompare = strcmp(this->first.c_str(), newNode->first.c_str());
-    node<T1, T2>* prevL = this->prev->left;
-    node<T1, T2>* prevR = this->prev->right;
-    if(strcompare == 0){ // first == key : 중복
+    if(strcompare == 0){                                        // first == key : 중복 -> 삽입하지 않는다
         cout << "same!\n";
-        if(this != head) return this->prev; 
-        else return head;
+        else return head;                                       // 변경사항 없이 그대로 반환
     }
     else{ // 중복이 아닌 경우
-        if(strcompare < 0){ // first < key 오른쪽 자손이 들어온 경우
-            if(right != nullptr) {
-                if(this->prev == this) {
-                    head = right->insert(newNode, head);
-                }
-                else if(this->prev->left == this) {
-                    head = right->insert(newNode, head);
-                }
-                else if(this->prev->right == this) {
-                    head = right->insert(newNode, head); 
-                }
+        if(strcompare < 0){                                     // this node 기준 오른쪽 자식이 들어온 경우
+            if(right != nullptr) {                              // 1) 오른쪽이 비어 있지 않은 경우 -> recursive call
+                head = right->insert(newNode, head); 
 
-                if(this->color.compare("red") == 0){
-                    if(this == head) { // root 노드인 경우
+                if(this->color.compare("red") == 0){            // recursive call 이후 this가 red인 경우
+                    if(this == head) {                          // root면 Black으로 다시 변경 후 리턴
                         this->color = "black"; 
                         return head;
                     }
-                    else{
+                    else{                                       // 삼촌도 RED면? -> 색상만 변경(this, 삼촌 : black, prev : red)
                         if(this->prev->right == this && this->prev->left->color.compare("red") == 0 || this->prev->left == this && this->prev->right->color.compare("red") == 0){
                                 this->prev->left->color = "black";
                                 this->prev->right->color = "black";
@@ -258,70 +267,70 @@ node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){
                     }
                 }
             }
-            else{
+            else{                                               // 2) 오른쪽이 비어 있는 경우 -> 삽입
                 newNode->color = "red";
                 newNode->prev = this;
                 right = newNode;
+
+                // DEBUG PRINT
                 // cout << "< right >\n";
                 // this->right->show();
-                if(this->prev == this) return head; // root 인 경우
-                if(this->prev->right != this){ // 꺾인 경우
-                    if(this->prev->right == nullptr){ // 삼촌이 없는 경우
+
+                if(this->prev == this) return head;             // root의 right에 삽입한 경우 바로 반환
+                if(this->prev->right != this){                  // 2-1) prev-this-newNode 모양이 꺾인 경우
+                    if(this->prev->right == nullptr){           // 2-1-1) 삼촌이 없는 경우 -> newNode(left:prev, right:this) 모양으로 회전
                         newNode->color = "black";
                         rotationL(this, newNode);
                         rotationR(newNode->prev, newNode);
-                        return head;
+                        return head;            
                     }
-                    else{ // 삼촌이 있는 경우
-                        if(this->color.compare("red") == 0){
-                            this->color = "black";
-                            if(this->prev->right->color.compare("red") == 0){ // 삼촌도 red
+                    else{                                       // 2-1-2) 삼촌이 있는 경우
+                        if(this->color.compare("red") == 0){    // this가 red라면? (this가 black이면 아무 일도 하지 않는다)
+                            this->color = "black";              
+                            if(this->prev->right->color.compare("red") == 0){ // 삼촌도 red 라면? -> 색상만 변경(삼촌, this: black, prev : red)
                                 this->prev->color = "red";
                                 this->prev->right->color = "black";
                                 return head;
-                                // back tracking
+                                // back tracking이 이어진다 -> recursive call 이후 조건문 확인부분
                             }
-                            else{ // 삼촌은 black
-                                rotationL(this, newNode);
+                            else{                                            // 삼촌은 black 이라면? -> prev(right:newNode), newNode(left:prev) 모양으로 회전
+                                rotationL(this, newNode);                   
                                 return head;
                             }
                         }
-                        // this가 black이면 아무 일도 하지 않는다
                     }
                 }
-                else{ // 안 꺾인 경우
-                    if(this->prev->left == nullptr){ // 삼촌이 없는 경우
+                else{                                           // 2-1-2) prev-this->newNode 모양이 안 꺾인 경우 : this(left:prev, right:newNode) 모양으로 변경
+                    if(this->prev->left == nullptr){            // 삼촌이 없는 경우
                         if(this->color.compare("red") == 0) this->color = "black";
                         rotationL(this->prev, this); 
-                        if(this->prev->right == this->left) this->prev->right = this;
-                        else if(this->prev->left == this->left) this->prev->left = this;
+                        // if(this->prev->right == this->left) this->prev->right = this;
+                        // else if(this->prev->left == this->left) this->prev->left = this;
                         return head;
                     }
-                    else{ // 삼촌이 있는 경우
-                        if(this->color.compare("red") == 0){ 
+                    else{                                       // 삼촌이 있는 경우
+                        if(this->color.compare("red") == 0){    // this가 red면? -> black으로 변경(this가 black이면 아무 일도 하지 않는다)
                             this->color = "black";
-                            if(this->prev->left->color.compare("red") == 0){ // 삼촌도 red
+                            if(this->prev->left->color.compare("red") == 0){ // 삼촌도 red면? -> 색상만 변경(삼촌:black, prev: red)
                                 this->prev->left->color = "black";
                                 this->prev->color = "red";
                                 return head;
-                                // back tracking
+                                // back tracking이 이어진다 -> recursive call 이후 조건문 확인부분
                             }
-                            else{ // 삼촌은 black
+                            else{                                           // 삼촌은 black 이면? -> newNode(left:this, right:nullptr) 모양으로 변경
                                 rotationL(this, newNode);
                                 return head;
                             }
                         }
-                        // this가 black이면 아무 일도 하지 않는다
                     }
 
                 }
             }
         }
-        else{ // first > key 왼쪽 자손이 들어온 경우
-            if(left != nullptr) {
-                if(this->prev == this) head = left->insert(newNode, head);
-                else if(this->prev->left == this) head = left->insert(newNode, head);
-                else if(this->prev->right == this) head = left->insert(newNode, head);
+        else{                                                               // this node 기준으로 왼쪽 자식이 들어 온 경우
+            if(left != nullptr) {                                           // 이하 주석 설명 위와 동(방향만 다름)
+                head = left->insert(newNode, head);
+
                 if(this->color.compare("red") == 0){
                     if(this == head) {
                         this->color = "black";
@@ -341,195 +350,97 @@ node<T1, T2>* node<T1, T2>::insert(node<T1, T2>* newNode, node* head){
                 newNode->color = "red";
                 newNode->prev = this;
                 left = newNode;
+
+                // DEBUG PRINT
                 // cout << "< left >\n";
                 // this->left->show();
 
-                if(this->prev == this) return head; // root 인 경우
-                if(this->prev->left != this){ // 꺾인 경우
-                    if(this->prev->left == nullptr){ // 삼촌이 없는 경우
+                if(this->prev == this) return head; 
+                if(this->prev->left != this){ 
+                    if(this->prev->left == nullptr){
                         if(this->color.compare("red") == 0) newNode->color = "black";
                         rotationR(this, newNode);
                         rotationL(newNode->prev, newNode);
                         return head;
                     }
-                    else{ // 삼촌이 있는 경우
+                    else{ 
                         if(this->color.compare("red") == 0){
                             this->color = "black";
-                            if(this->prev->left->color.compare("red") == 0){ // 삼촌도 red
+                            if(this->prev->left->color.compare("red") == 0){
                                 this->prev->color = "red";
                                 this->prev->left->color = "black";
                                 return head;
-                                // back tracking
                             }
-                            else{ // 삼촌은 black
+                            else{ 
                                 rotationR(this, newNode);
                                 return head;
                             }
                         }
-                        // this가 black이면 아무 일도 하지 않는다
                     }
                 }
-                else{ // 안 꺾인 경우
-                    if(this->prev->right == nullptr){ // 삼촌이 없는 경우
+                else{
+                    if(this->prev->right == nullptr){ 
                         if(this->color.compare("red") == 0) this->color = "black";
                         rotationR(this->prev, this);
-                        if(this->prev->right == this->right) this->prev->right = this; // toRight한 조상의 부모에 this 연결
-                        else if(this->prev->left == this->right) this->prev->left = this;
+                        // if(this->prev->right == this->right) this->prev->right = this; 
+                        // else if(this->prev->left == this->right) this->prev->left = this;
                         return head;
                     }
-                    else{ // 삼촌이 있는 경우
+                    else{ 
                         if(this->color.compare("red") == 0){ 
                             this->color = "black";
                             if(this->prev->right->color.compare("red") == 0){ // 삼촌도 red
                                 this->prev->right->color = "black";
                                 this->prev->color = "red";
                                 return head;
-                                // back tracking
                             }
-                            else{ // 삼촌은 black
+                            else{ 
                                 rotationR(this, newNode);
                                 return head;
                             }
                         }
-                        // this가 black이면 아무 일도 하지 않는다
                     }
-
                 }
             }
         }
     }
-    return head;
+    //return head;
 }
 
+/* find function : key값을 가진 노드를 찾아 반환한다 */
 template<typename T1, typename T2>
 node<T1, T2>* node<T1, T2>::find(T1 key){
     int strcompare = strcmp(key.c_str(), this->first.c_str());
-    if(strcompare == 0){ // found!
+    if(strcompare == 0){                                        // found! -> this 반환
         return this; 
     }
-    else{
-        if(strcompare > 0){ // this 보다는 찾으려는 Key가 큰 경우
-            if(right == nullptr) return nullptr; // 오른쪽이 비어있는 경우
-            else{ // 오른쪽에서 있는지 찾기
-                return right->find(key);
+    else{                                               
+        if(strcompare > 0){                                     // 오른쪽 subtree에서 찾아야 하는 경우
+            if(right == nullptr) return nullptr;                // - 오른쪽이 비어있는 경우 : 찾을 수 없음
+            else{                                               
+                return right->find(key);                        // - 오른쪽에서 Recursive call
             }
         }
-        else{ // this 보다 찾으려는 Key가 작은 경우
-            if(left == nullptr) return nullptr; // 왼쪽이 비어있는 경우
-            else{ // 왼쪽에서 있는지 찾기
-                return left->find(key);
+        else{                                                   // 왼쪽 subtree에서 찾아야 하는 경우
+            if(left == nullptr) return nullptr;                 // - 왼쪽이 비어있는 경우 : 찾을 수 없음
+            else{ 
+                return left->find(key);                         // - 왼쪽에서 Recursive call
             }
         }
     }
 }
 
-// template <typename T1, typename T2>
-// bool node<T1, T2>::black(){
-//     my_map<string, int>::iterator iter;
-//     iter = iterator(this); 
-//     for(; iter != m.end(); ++iter){
-//         if(iter->color.compare("red") == 0) return false;
-//     }
-//     return true;
-// }
-/*
-// https://gwpaeng.tistory.com/309 : 참고 사이트 보고 다시 구현 해보기
-template<typename T1, typename T2>
-void my_map<T1, T2>::erase(T1 key){
-    node<T1, T2>* found = (*this).find(key);
-    if(found == nullptr) return; // 삭제할 노드를 찾지 못 한 경우
-    node<T1, T2>* smallestR = found->right->begin(); // 오른쪽 서브 트리에서 가장 작은 값으로 자리 대체
-    if(smallestR->prev->left == smallestR) smallestR->prev->left = nullptr;
-    else if(smallestR->prev->right == smallestR) smallestR->prev->right = nullptr;
-    found->first = smallestR->first;
-    found->second = smallestR->second;
-    if(found->color.compare("black") == 0){ // 삭제되는 노드의 색상이 black인 경우
-        // 이중 흑색 노드인지 검사
-        if(smallestR->color.compare("black") == 0) { // 이중 흑색 노드인 경우 : 4가지 cases 존재
-            
-            // 1. found의 형제가 red
-            if(found->prev->left == found){
-                if(found->prev->right->color.compare("red") == 0){ // 형제의 색상이 red인 경우 
-                    found->prev->right->color = "black";
-                    found->prev->color = "red";
-                    rotationL(found->prev, found->prev->right); // 삼촌이 새로운 부모가 되도록 회전
-                }
-            }
-            else if(found->prev->right ==  found){
-                if(found->prev->left->color.compare("red") == 0){ // 형제의 색상이 red인 경우 
-                    found->prev->left->color = "black";
-                    found->prev->color = "red";
-                    rotationR(found->prev, found->prev->left); // 삼촌이 새로운 부모가 되도록 회전ㄴ
-                }
-            }
-            // 2. found의 형제가 black, found의 형제 자식 모두 black
-            if(found->prev->left == found){
-                if(found->prev->right->color.compare("black") == 0){ // 형제의 색상이 black인 경우 
-                    // found의 형제의 자식도 모두 black 이라면 
-                    bool black = found->prev->right->black();
-                    if(black){
-                        found->prev->right->color = "red";
-                        node<T1, T2>* curr = found->prev;
-                        while(curr != head){
-                            curr->color = "black";
-                            curr = curr->prev;
-                        }
-                    }// 3. found의 형제가 black, 형제의 왼쪽 자식이 red, 형제의 오른쪽 자식이 black
-                    else if(found->prev->right->left->color.compare("red") && found->prev->right->right->color.compare("black")){
-                        found->prev->right->color = "red";
-                        found->prev->right->left->color = "black";
-                        rotationR(found->prev->right, found->prev->right->left);
-                    }// 4. found의 형제가 black, found의 형제의 오른쪽 자식이 red
-                    else if(found->prev->right->right->color.compare("red") == 0){
-                        found->prev->right->color = found->prev->color;
-                        found->prev->color = "black";
-                        found->prev->right->right->color = "black";
-                        rotationL(found->prev, found->prev->right);
-                    }
-                }
-            }
-            else if(found->prev->right ==  found){
-                if(found->prev->left->color.compare("black") == 0){ // 형제의 색상이 black인 경우 
-                    // found의 형제의 자식도 모두 black 이라면 
-                    bool black = found->prev->left->black();
-                    if(black){
-                        found->prev->left->color = "red";
-                        node<T1, T2>* curr = found->prev;
-                        while(curr != head){
-                            curr->color = "black";
-                            curr = curr->prev;
-                        }
-                    }
-                    else if(found->prev->left->right->color.compare("red") && found->prev->left->left->color.compare("black")){
-                        found->prev->left->color = "red";
-                        found->prev->left->right->color = "black";
-                        rotationL(found->prev->left, found->prev->left->right);
-                    } 
-                    else if(found->prev->left->left->color.compare("red") == 0){
-                        found->prev->left->color = found->prev->color;
-                        found->prev->color = "black";
-                        found->prev->left->left->color = "black";
-                        rotationL(found->prev, found->prev->left);
-                    } 
-                }
-            }
-            // 4. found의 형제가 black, found의 형제의 오른쪽 자식이 red
-        }
-        else{// smallestR이 red 였던 경우에는 black으로 바꾼 채로 대체해야 한다 -> 이미 found가 black 이므로 first, second 값만 바꾼 채로 그대로 삭제
-            delete smallestR;
-        }
-    }
-    // 삭제 노드(found)가 red일 경우 그냥 삭제
-    
-}*/
-
+/*  erase function : key값을 가진 노드를 오른쪽에서 가장 작은 값으로 대체하고, 대체된 노드에 대한 메모리는 삭제된다 */
 template <typename T1, typename T2>
 void node<T1, T2>::erase(T1 key){
 
     int strcompare = strcmp(key.c_str(), this->first.c_str());
-    if(strcompare == 0){ // found!
-        node<T1, T2>* smallestR = this->right->begin(); // 오른쪽 서브 트리에서 가장 작은 값으로 자리 대체
-        if(smallestR->prev->left == smallestR) {
+    if(strcompare == 0){                                        // 1. Key값을 가진 노드 발견
+        // stage 1. 오른쪽 서브 트리에서 가장 작은 값 찾기
+        node<T1, T2>* smallestR = this->right->begin();         
+        
+        // stage 2. 연결된 모양에 따라 자식 포인터 변경
+        if(smallestR->prev->left == smallestR) {                
             smallestR->prev->left = smallestR->right;
             smallestR->right->prev = smallestR->prev;
         }
@@ -537,22 +448,26 @@ void node<T1, T2>::erase(T1 key){
             smallestR->prev->right = smallestR->right;
             smallestR->right->prev = smallestR->prev;
         }
+
+        // stage 3. 대체할 노드의 값을 삭제할 노드의 값에 대입
         this->first = smallestR->first;
         this->second = smallestR->second; 
+
+        // stage 4. 대체된 노드에 대한 메모리 삭제
         delete smallestR;
         return;
     }
-    else{
-        if(strcompare > 0){ // this 보다는 찾으려는 Key가 큰 경우
-            if(this->right == nullptr) return; // 오른쪽이 비어있는 경우
-            else{ // 오른쪽에서 있는지 찾기
-                return this->right->erase(key);
+    else{                                                   // 2. Key값을 가진 노드 발견 못한 경우
+        if(strcompare > 0){                                 // 2-1) 오른쪽 자식을 탐색해야 하는 경우
+            if(this->right == nullptr) return;              // 오른쪽이 비어있는 경우 -> 삭제할 노드가 존재하지 않는다
+            else{ 
+                return this->right->erase(key);             // 비어있지 않은 경우 -> right에서 recursive call
             }
         }
-        else{ // this 보다 찾으려는 Key가 작은 경우
-            if(this->left == nullptr) return; // 왼쪽이 비어있는 경우
-            else{ // 왼쪽에서 있는지 찾기
-                return this->left->erase(key);
+        else{                                               // 2-2) 왼쪽 자식을 탐색해야 하는 경우
+            if(this->left == nullptr) return;               // 왼쪽이 비어있는 경우 -> 삭제할 노드가 존재하지 않는다
+            else{ 
+                return this->left->erase(key);              // 비어있지 않은 경우 -> Left에서 recursive call
             }
         }
     }
