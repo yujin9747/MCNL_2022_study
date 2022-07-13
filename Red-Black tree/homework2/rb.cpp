@@ -31,7 +31,8 @@ class node{
             return curr;
         }
         T2& operator[](T1 key); 
-        // void erase(T1 key);  
+        bool black();
+        void erase(T1 key);
 };
 
 template <typename T1, typename T2>
@@ -110,6 +111,9 @@ class my_map{
             }
             return found->second;
         }
+        void erase(T1 key){
+            return head->erase(key);
+        }
 
         typedef MapIterator<T1, T2> iterator;
 
@@ -128,6 +132,13 @@ class my_map{
             }
             return iterator(curr);
         }
+        // node<T1, T2>* begin(){
+        //     node<T1, T2>* curr = head;
+        //     while(curr->left != nullptr){
+        //         curr = curr->left;
+        //     }
+        //     return curr;
+        // }
         iterator end(){
             return iterator(nullptr);
         }
@@ -170,7 +181,7 @@ int main(){
 
     cout << "\n** Third Step **\n";
     m["CSEE"] = 100;
-    // m.erase("Global"); 
+    m.erase("Global"); 
     print_map(m);
 
     cout << "\n** Fourth Step **\n";
@@ -407,17 +418,24 @@ node<T1, T2>* node<T1, T2>::find(T1 key){
     }
 }
 
+// template <typename T1, typename T2>
+// bool node<T1, T2>::black(){
+//     my_map<string, int>::iterator iter;
+//     iter = iterator(this); 
+//     for(; iter != m.end(); ++iter){
+//         if(iter->color.compare("red") == 0) return false;
+//     }
+//     return true;
+// }
+/*
 // https://gwpaeng.tistory.com/309 : 참고 사이트 보고 다시 구현 해보기
 template<typename T1, typename T2>
 void my_map<T1, T2>::erase(T1 key){
 
-// key값을 가지는 노드를 찾는다 -> find 이용
-// 해당 노드를 삭제해 해당 노드의 자식을 prev에 적절히 연결한다
+    node<T1, T2>* found = (*this).find(key);
+    if(found == nullptr) return; // 삭제할 노드를 찾지 못 한 경우
 
-    iterator found = find(key);
-    if(founr == iterator(nullptr)) return; // 삭제할 노드를 찾지 못 한 경우
-
-    iterator smallestR = found->right->begin(); // 오른쪽 서브 트리에서 가장 작은 값으로 자리 대체
+    node<T1, T2>* smallestR = found->right->begin(); // 오른쪽 서브 트리에서 가장 작은 값으로 자리 대체
     if(smallestR->prev->left == smallestR) smallestR->prev->left = nullptr;
     else if(smallestR->prev->right == smallestR) smallestR->prev->right = nullptr;
     found->first = smallestR->first;
@@ -428,11 +446,73 @@ void my_map<T1, T2>::erase(T1 key){
         if(smallestR->color.compare("black") == 0) { // 이중 흑색 노드인 경우 : 4가지 cases 존재
             
             // 1. found의 형제가 red
+            if(found->prev->left == found){
+                if(found->prev->right->color.compare("red") == 0){ // 형제의 색상이 red인 경우 
+                    found->prev->right->color = "black";
+                    found->prev->color = "red";
+                    rotationL(found->prev, found->prev->right); // 삼촌이 새로운 부모가 되도록 회전
+                }
+            }
+            else if(found->prev->right ==  found){
+                if(found->prev->left->color.compare("red") == 0){ // 형제의 색상이 red인 경우 
+                    found->prev->left->color = "black";
+                    found->prev->color = "red";
+                    rotationR(found->prev, found->prev->left); // 삼촌이 새로운 부모가 되도록 회전ㄴ
+                }
+            }
             // 2. found의 형제가 black, found의 형제 자식 모두 black
-            // 3. found의 형제가 black, 형제의 왼쪽 자식이 red, 형제의 오른쪽 자식이 black
-            // 4. found의 형제가 black, found의 형제의 오른쪽 자식이 red
-            
+            if(found->prev->left == found){
+                if(found->prev->right->color.compare("black") == 0){ // 형제의 색상이 black인 경우 
+                    // found의 형제의 자식도 모두 black 이라면 
+                    bool black = found->prev->right->black();
+                    if(black){
+                        found->prev->right->color = "red";
+                        node<T1, T2>* curr = found->prev;
+                        while(curr != head){
+                            curr->color = "black";
+                            curr = curr->prev;
+                        }
+                    }// 3. found의 형제가 black, 형제의 왼쪽 자식이 red, 형제의 오른쪽 자식이 black
+                    else if(found->prev->right->left->color.compare("red") && found->prev->right->right->color.compare("black")){
+                        found->prev->right->color = "red";
+                        found->prev->right->left->color = "black";
+                        rotationR(found->prev->right, found->prev->right->left);
+                    }// 4. found의 형제가 black, found의 형제의 오른쪽 자식이 red
+                    else if(found->prev->right->right->color.compare("red") == 0){
+                        found->prev->right->color = found->prev->color;
+                        found->prev->color = "black";
+                        found->prev->right->right->color = "black";
+                        rotationL(found->prev, found->prev->right);
+                    }
+                }
+            }
+            else if(found->prev->right ==  found){
+                if(found->prev->left->color.compare("black") == 0){ // 형제의 색상이 black인 경우 
+                    // found의 형제의 자식도 모두 black 이라면 
+                    bool black = found->prev->left->black();
+                    if(black){
+                        found->prev->left->color = "red";
+                        node<T1, T2>* curr = found->prev;
+                        while(curr != head){
+                            curr->color = "black";
+                            curr = curr->prev;
+                        }
+                    }
+                    else if(found->prev->left->right->color.compare("red") && found->prev->left->left->color.compare("black")){
+                        found->prev->left->color = "red";
+                        found->prev->left->right->color = "black";
+                        rotationL(found->prev->left, found->prev->left->right);
+                    } 
+                    else if(found->prev->left->left->color.compare("red") == 0){
+                        found->prev->left->color = found->prev->color;
+                        found->prev->color = "black";
+                        found->prev->left->left->color = "black";
+                        rotationL(found->prev, found->prev->left);
+                    } 
+                }
 
+            }
+            // 4. found의 형제가 black, found의 형제의 오른쪽 자식이 red
         }
         else{// smallestR이 red 였던 경우에는 black으로 바꾼 채로 대체해야 한다 -> 이미 found가 black 이므로 first, second 값만 바꾼 채로 그대로 삭제
             delete smallestR;
@@ -440,5 +520,35 @@ void my_map<T1, T2>::erase(T1 key){
     }
     // 삭제 노드(found)가 red일 경우 그냥 삭제
     
+}*/
+
+template <typename T1, typename T2>
+void node<T1, T2>::erase(T1 key){
+
+    int strcompare = strcmp(key.c_str(), this->first.c_str());
+    if(strcompare == 0){ // found!
+        node<T1, T2>* smallestR = this->right->begin(); // 오른쪽 서브 트리에서 가장 작은 값으로 자리 대체
+        if(smallestR->prev->left == smallestR) smallestR->prev->left = nullptr;
+        else if(smallestR->prev->right == smallestR) smallestR->prev->right = nullptr;
+        this->first = smallestR->first;
+        this->second = smallestR->second; 
+        delete smallestR;
+        return;
+    }
+    else{
+        if(strcompare > 0){ // this 보다는 찾으려는 Key가 큰 경우
+            if(this->right == nullptr) return; // 오른쪽이 비어있는 경우
+            else{ // 오른쪽에서 있는지 찾기
+                return this->right->erase(key);
+            }
+        }
+        else{ // this 보다 찾으려는 Key가 작은 경우
+            if(this->left == nullptr) return; // 왼쪽이 비어있는 경우
+            else{ // 왼쪽에서 있는지 찾기
+                return this->left->erase(key);
+            }
+        }
+    }
 }
+
 
