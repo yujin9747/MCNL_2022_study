@@ -31,8 +31,17 @@ class node{
             }
             return curr;
         }
+        node* successor(){
+            node* curr = this->left;
+            if(curr == nullptr) return nullptr;
+            while(curr->right != nullptr){
+                curr = curr->right;
+            }
+            return curr;
+        }
         T2& operator[](T1 key); 
         void erase(T1 key);
+        //bool isRed(node<T1, T2>* curr)
 };
 
 /* MapIterator 클래스 : node 포인터를 가지고 있으며, operator overloading을 통해 curr의 위치를 이동해 반환한다 */
@@ -170,7 +179,7 @@ class my_map{
 template <typename T1, typename T2>
 void print_map(my_map<T1, T2> m){
     my_map<string, int>::iterator iter;
-    iter = m.begin(); // 이 부분에서 iterator가 타입으로 인식되어야 하는데 인식이 되지 않는 상황*
+    iter = m.begin();
     for(; iter != m.end(); ++iter){
         cout << iter->first << ": " << iter->second << "\n";
     }
@@ -204,7 +213,7 @@ int main(){
 
     cout << "\n** Third Step **\n";
     m["CSEE"] = 100;
-    m.erase("Global"); 
+    //m.erase("Global"); 
     print_map(m);
     // CSEE(값 100으로 변경) - Handong -> Korea -> MCNL -> Pohang 순 출력
 
@@ -444,7 +453,69 @@ node<T1, T2>* node<T1, T2>::find(T1 key){
     }
 }
 
-/*  erase function : key값을 가진 노드를 오른쪽에서 가장 작은 값으로 대체하고, 대체된 노드에 대한 메모리는 삭제된다 */
+template <typename T1, typename T2>
+void node<T1, T2>::erase(T1 key){
+    node<T1, T2>* successor;
+    int strcompare = strcmp(key.c_str(), this->first.c_str());
+    if(strcompare == 0){
+        if(this->prev == this) {                            // root인 경우
+            delete this;
+            return;
+        }
+        else if(this->color.compare("red") == 0) {          // 삭제하려는 노드가 red면 바로 삭제
+            // 왼쪽에서 가장 큰 것 가져와서 this에 넣어주기
+            successor = this->successor();
+            if(successor == nullptr){   
+                if(this->prev->left == this) this->prev->left = this->right;
+                else if(this->prev->right == this) this->prev->right = this->right;
+                delete this;
+            }
+            else{
+                this->first = successor->first;
+                this->second = successor->second;
+                this->left = successor->left;
+                successor->left->prev = this;
+                delete successor;
+            }
+        }
+        else if(this->left != nullptr || this->right != nullptr){ // this color가 black이면서 자식이 하나라도 존재
+            successor = this->successor();
+            if(successor == nullptr){}
+            else if(this->left != nullptr && this->left->color.compare("red") == 0){
+                this->first = successor->first;
+                this->second = successor->second;
+                this->left = successor->left;
+                delete successor;
+            }else if(this->right != nullptr && this->right->color.compare("red")==0){
+                this->first = successor->first;
+                this->second = successor->second;
+                this->right = successor->left;
+                delete successor;
+            }
+        }
+        else if(this->left == nullptr && this->right == nullptr){                                               
+        }
+    }
+    else{                                                   // 2. Key값을 가진 노드 발견 못한 경우
+        if(strcompare > 0){                                 // 2-1) 오른쪽 자식을 탐색해야 하는 경우
+            if(this->right == nullptr) return;              // 오른쪽이 비어있는 경우 -> 삭제할 노드가 존재하지 않는다
+            else{ 
+                return this->right->erase(key);             // 비어있지 않은 경우 -> right에서 recursive call
+            }
+        }
+        else{                                               // 2-2) 왼쪽 자식을 탐색해야 하는 경우
+            if(this->left == nullptr) return;               // 왼쪽이 비어있는 경우 -> 삭제할 노드가 존재하지 않는다
+            else{ 
+                return this->left->erase(key);              // 비어있지 않은 경우 -> Left에서 recursive call
+            }
+        }
+    }
+
+}
+
+
+/*
+기존 erase function : key값을 가진 노드를 오른쪽에서 가장 작은 값으로 대체하고, 대체된 노드에 대한 메모리는 삭제된다 
 template <typename T1, typename T2>
 void node<T1, T2>::erase(T1 key){
 
@@ -486,3 +557,4 @@ void node<T1, T2>::erase(T1 key){
         }
     }
 }
+*/
